@@ -1,15 +1,19 @@
-# Milestone 1: The Foundation
+# Milestone 2: Real-time Sync
 
 ## Summary
-Initialized the repository structure with a Next.js 14 client and an Express/Node.js server. Configured the root `package.json` to manage both applications concurrently.
+Implemented the real-time multiplayer drawing feature using HTML5 Canvas and Socket.io.
 
 ## Technical Implementation
-- **Client**: Created using `create-next-app` with Tailwind CSS, TypeScript, and App Router.
-- **Server**: initialized with `npm init`, installed `express`, `socket.io`, `cors`, `dotenv`.
-- **Root**: Added `concurrently` to run both client (`npm run start:client`) and server (`npm run start:server`) in parallel via `npm run dev`.
+- **Client**:
+    - Created `DrawingCanvas` component with `useDraw` hook for handling mouse/touch events.
+    - Integrated `socket.io-client` to emit `draw-line` events.
+    - Updated `page.tsx` to render the canvas.
+- **Server**:
+    - Updated `index.js` to listen for `draw-line` events and broadcast them to other connected clients.
+    - Configured CORS to allow connections from `localhost:3000`, `3001`, and `3002`.
 
 ## Testing
-1. Run `npm install` in root.
-2. Run `npm run dev`.
-3. Verify Client at `http://localhost:3000`.
-4. Verify Server at `http://localhost:3001` (logs "Server running on port 3001").
+1. Run `npm run dev` in root.
+2. Open two browser windows at `http://localhost:3000` (or `3002` if 3000 is busy).
+3. Draw in one window and verify it appears in the other window in real-time.
+4. Verify `Clear canvas` button clears both screens.
