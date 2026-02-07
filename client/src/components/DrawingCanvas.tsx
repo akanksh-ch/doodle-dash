@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useDraw } from '@/hooks/useDraw';
 
