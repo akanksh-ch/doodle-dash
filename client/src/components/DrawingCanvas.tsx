@@ -17,7 +17,12 @@ interface Point {
     y: number;
 }
 
-const DrawingCanvas: FC = () => {
+interface DrawingCanvasProps {
+    readOnly?: boolean;
+    onGuessSubmit?: (guess: string) => void;
+}
+
+const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit }) => {
     const [color, setColor] = useState<string>('#000');
     const { canvasRef, onMouseDown, clear } = useDraw(createLine);
 
@@ -38,6 +43,7 @@ const DrawingCanvas: FC = () => {
     }, [canvasRef, clear]);
 
     function createLine({ ctx, currentPoint, prevPoint }: { ctx: CanvasRenderingContext2D; currentPoint: Point; prevPoint: Point | null }) {
+        if (readOnly) return;
         socket.emit('draw-line', ({ prevPoint, currentPoint, color }));
         drawLine({ prevPoint, currentPoint, ctx, color });
     }
@@ -80,7 +86,11 @@ const DrawingCanvas: FC = () => {
             }
 
             const data = await response.json();
-            alert(`AI says: ${data.guess}`);
+            if (onGuessSubmit) {
+                onGuessSubmit(data.guess);
+            } else {
+                alert(`AI says: ${data.guess}`);
+            }
         } catch (error) {
             console.error(error);
             alert("Error getting guess. Check server logs.");
@@ -89,39 +99,41 @@ const DrawingCanvas: FC = () => {
 
     return (
         <div className='w-full h-screen bg-white flex justify-center items-center'>
-            <div className='flex flex-col gap-4 pr-10'>
-                <div className='flex flex-col gap-2'>
-                    <label>Color Picker</label>
-                    <input
-                        type="color"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        className='w-10 h-10'
-                    />
+            {!readOnly && (
+                <div className='flex flex-col gap-4 pr-10'>
+                    <div className='flex flex-col gap-2'>
+                        <label>Color Picker</label>
+                        <input
+                            type="color"
+                            value={color}
+                            onChange={(e) => setColor(e.target.value)}
+                            className='w-10 h-10'
+                        />
+                    </div>
+                    <button
+                        type='button'
+                        className='p-2 rounded-md border border-black hover:bg-gray-100 transition-all'
+                        onClick={() => {
+                            socket.emit('clear');
+                            clear();
+                        }}>
+                        Clear canvas
+                    </button>
+                    <button
+                        type='button'
+                        className='p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-all'
+                        onClick={handleGuess}>
+                        Guess!
+                    </button>
                 </div>
-                <button
-                    type='button'
-                    className='p-2 rounded-md border border-black hover:bg-gray-100 transition-all'
-                    onClick={() => {
-                        socket.emit('clear');
-                        clear();
-                    }}>
-                    Clear canvas
-                </button>
-                <button
-                    type='button'
-                    className='p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-all'
-                    onClick={handleGuess}>
-                    Guess!
-                </button>
-            </div>
+            )}
             <canvas
                 ref={canvasRef}
                 onMouseDown={onMouseDown}
                 onTouchStart={onMouseDown}
                 width={750}
                 height={750}
-                className='border border-black rounded-md'
+                className={`border border-black rounded-md ${readOnly ? 'cursor-default pointer-events-none' : 'cursor-crosshair'}`}
             />
         </div>
     );
