@@ -61,6 +61,32 @@ const DrawingCanvas: FC = () => {
         ctx.fill();
     }
 
+    async function handleGuess() {
+        if (!canvasRef.current) return;
+
+        const image = canvasRef.current.toDataURL("image/png");
+
+        try {
+            const response = await fetch("http://localhost:3001/api/guess", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ image }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to get guess");
+            }
+
+            const data = await response.json();
+            alert(`AI says: ${data.guess}`);
+        } catch (error) {
+            console.error(error);
+            alert("Error getting guess. Check server logs.");
+        }
+    }
+
     return (
         <div className='w-full h-screen bg-white flex justify-center items-center'>
             <div className='flex flex-col gap-4 pr-10'>
@@ -81,6 +107,12 @@ const DrawingCanvas: FC = () => {
                         clear();
                     }}>
                     Clear canvas
+                </button>
+                <button
+                    type='button'
+                    className='p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-all'
+                    onClick={handleGuess}>
+                    Guess!
                 </button>
             </div>
             <canvas
