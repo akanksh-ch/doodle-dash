@@ -1,19 +1,22 @@
-# Milestone 2: Real-time Sync
+# Milestone 3: The AI Judge
 
 ## Summary
-Implemented the real-time multiplayer drawing feature using HTML5 Canvas and Socket.io.
+Integrated Google's Gemini 1.5 Flash AI to analyze player drawings and provide a guess.
 
 ## Technical Implementation
-- **Client**:
-    - Created `DrawingCanvas` component with `useDraw` hook for handling mouse/touch events.
-    - Integrated `socket.io-client` to emit `draw-line` events.
-    - Updated `page.tsx` to render the canvas.
 - **Server**:
-    - Updated `index.js` to listen for `draw-line` events and broadcast them to other connected clients.
-    - Configured CORS to allow connections from `localhost:3000`, `3001`, and `3002`.
+    - Added `/api/guess` endpoint.
+    - Integrated `@google/generative-ai` SDK.
+    - Handles Base64 image uploads (limit set to 10mb).
+    - Uses `gemini-1.5-flash` model with a prompt to "guess what this drawing represents in 1-3 words".
+- **Client**:
+    - Added "Guess!" button to `DrawingCanvas`.
+    - Converts canvas to Base64 and POSTs to `/api/guess`.
+    - Displays the AI's response in an alert.
 
 ## Testing
-1. Run `npm run dev` in root.
-2. Open two browser windows at `http://localhost:3000` (or `3002` if 3000 is busy).
-3. Draw in one window and verify it appears in the other window in real-time.
-4. Verify `Clear canvas` button clears both screens.
+1. Ensure `GEMINI_API_KEY` is set in `server/.env`.
+2. Run `npm run dev`.
+3. Draw something on the canvas.
+4. Click "Guess!".
+5. Verify the alert shows a relevant guess (or a funny failure).
