@@ -12,13 +12,22 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
         methods: ["GET", "POST"]
     }
 });
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
+
+    socket.on('draw-line', (data) => {
+        // Broadcast to all other clients, excluding the sender
+        socket.broadcast.emit('draw-line', data);
+    });
+
+    socket.on('clear', () => {
+        io.emit('clear');
+    });
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
