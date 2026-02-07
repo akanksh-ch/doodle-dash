@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import DrawingCanvas from '@/components/DrawingCanvas';
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3001');
+import { socket } from '@/socket';
 
 type GameState = 'LOBBY' | 'PLAYING' | 'RESULTS';
 

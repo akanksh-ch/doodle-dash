@@ -1,10 +1,8 @@
 'use client';
 
 import { FC, useEffect, useState, useRef, useCallback } from 'react';
-import { io } from 'socket.io-client';
+import { socket } from '@/socket';
 import { useDraw } from '@/hooks/useDraw';
-
-const socket = io(process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001');
 
 interface DrawLineProps {
     prevPoint: Point | null;
@@ -80,9 +78,10 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
         if (!canvasRef.current) return;
 
         const image = canvasRef.current.toDataURL("image/png");
+        const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
 
         try {
-            const response = await fetch("http://localhost:3001/api/guess", {
+            const response = await fetch(`${SERVER_URL}/api/guess`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
