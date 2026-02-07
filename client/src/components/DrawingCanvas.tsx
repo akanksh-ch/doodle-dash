@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useDraw } from '@/hooks/useDraw';
 
@@ -24,10 +24,25 @@ interface DrawingCanvasProps {
 
 const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit }) => {
     const [color, setColor] = useState<string>('#000');
+    const isInitialized = useRef(false);
+
+    const createLine = useCallback(({ ctx, currentPoint, prevPoint }: { ctx: CanvasRenderingContext2D; currentPoint: Point; prevPoint: Point | null }) => {
+        if (readOnly) return;
+        socket.emit('draw-line', ({ prevPoint, currentPoint, color }));
+        drawLine({ prevPoint, currentPoint, ctx, color });
+    }, [color, readOnly]);
+
     const { canvasRef, onMouseDown, clear } = useDraw(createLine);
 
     useEffect(() => {
         const ctx = canvasRef.current?.getContext('2d');
+
+        // Initialize with white background only once
+        if (ctx && !readOnly && !isInitialized.current) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvasRef.current?.width || 0, canvasRef.current?.height || 0);
+            isInitialized.current = true;
+        }
 
         socket.on('draw-line', ({ prevPoint, currentPoint, color }: DrawLineProps) => {
             if (!ctx) return;
@@ -40,13 +55,7 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
             socket.off('draw-line');
             socket.off('clear');
         };
-    }, [canvasRef, clear]);
-
-    function createLine({ ctx, currentPoint, prevPoint }: { ctx: CanvasRenderingContext2D; currentPoint: Point; prevPoint: Point | null }) {
-        if (readOnly) return;
-        socket.emit('draw-line', ({ prevPoint, currentPoint, color }));
-        drawLine({ prevPoint, currentPoint, ctx, color });
-    }
+    }, [canvasRef, clear, readOnly]);
 
     function drawLine({ prevPoint, currentPoint, ctx, color }: DrawLineProps & { ctx: CanvasRenderingContext2D }) {
         const { x: currX, y: currY } = currentPoint;
