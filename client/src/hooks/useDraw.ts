@@ -11,12 +11,43 @@ interface DrawProps {
     prevPoint: Point | null;
 }
 
-export const useDraw = (onDraw: (draw: DrawProps) => void) => {
+export const useDraw = (onDraw: ({ ctx, currentPoint, prevPoint }: DrawProps) => void) => {
     const [mouseDown, setMouseDown] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const prevPoint = useRef<Point | null>(null);
 
-    const onMouseDown = () => setMouseDown(true);
+    const computePointInCanvas = (e: MouseEvent | TouchEvent | React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement | null) => {
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        let clientX, clientY;
+
+        if ('touches' in e) {
+            // Touch event
+            if (e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                return null; // Touch end has no touches
+            }
+        } else {
+            // Mouse event
+            clientX = (e as MouseEvent | React.MouseEvent).clientX;
+            clientY = (e as MouseEvent | React.MouseEvent).clientY;
+        }
+
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const onMouseDown = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+        setMouseDown(true);
+        const currentPoint = computePointInCanvas(e, canvasRef.current);
+        const ctx = canvasRef.current?.getContext('2d');
+
+        if (!ctx || !currentPoint) return;
+
+        onDraw({ ctx, currentPoint, prevPoint: prevPoint.current });
+        prevPoint.current = currentPoint;
+    };
 
     const clear = () => {
         const canvas = canvasRef.current;
@@ -33,21 +64,12 @@ export const useDraw = (onDraw: (draw: DrawProps) => void) => {
             if (!mouseDown) return;
 
             const currentPoint = computePointInCanvas(e, canvasRef.current);
-
             const ctx = canvasRef.current?.getContext('2d');
+
             if (!ctx || !currentPoint) return;
 
             onDraw({ ctx, currentPoint, prevPoint: prevPoint.current });
             prevPoint.current = currentPoint;
-        };
-
-        const computePointInCanvas = (e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement | null) => {
-            if (!canvas) return null;
-            const rect = canvas.getBoundingClientRect();
-            const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
-            const y = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-            return { x: x - rect.left, y: y - rect.top };
         };
 
         const mouseUpHandler = () => {
@@ -61,9 +83,12 @@ export const useDraw = (onDraw: (draw: DrawProps) => void) => {
             canvas.addEventListener('mousemove', handler);
             canvas.addEventListener('touchmove', handler);
             canvas.addEventListener('mouseup', mouseUpHandler);
-            canvas.addEventListener('touchend', mouseUpHandler);
+            // canvas.addEventListener('mouseout', mouseUpHandler); // Optional: stop if leaves canvas?
             // We also need mouseleave to stop drawing if they go off canvas
             canvas.addEventListener('mouseleave', mouseUpHandler);
+
+            // Touch events
+            canvas.addEventListener('touchend', mouseUpHandler);
         }
 
         return () => {
@@ -71,8 +96,8 @@ export const useDraw = (onDraw: (draw: DrawProps) => void) => {
                 canvas.removeEventListener('mousemove', handler);
                 canvas.removeEventListener('touchmove', handler);
                 canvas.removeEventListener('mouseup', mouseUpHandler);
-                canvas.removeEventListener('touchend', mouseUpHandler);
                 canvas.removeEventListener('mouseleave', mouseUpHandler);
+                canvas.removeEventListener('touchend', mouseUpHandler);
             }
         };
     }, [onDraw, mouseDown]);
