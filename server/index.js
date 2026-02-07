@@ -29,6 +29,35 @@ io.on('connection', (socket) => {
         io.emit('clear');
     });
 
+    let timerInterval;
+    let timeLeft = 30;
+
+    socket.on('start-game', () => {
+        io.emit('start-game');
+        io.emit('clear');
+
+        // Reset Timer
+        timeLeft = 30;
+        clearInterval(timerInterval);
+
+        io.emit('timer-update', timeLeft);
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            io.emit('timer-update', timeLeft);
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                io.emit('time-up'); // Client should handle this, maybe auto-guess or just show "Time's Up"
+            }
+        }, 1000);
+    });
+
+    socket.on('end-game', (result) => {
+        clearInterval(timerInterval); // Stop timer if game ends early
+        io.emit('game-over', result);
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
     });
