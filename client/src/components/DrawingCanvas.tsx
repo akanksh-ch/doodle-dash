@@ -4,7 +4,7 @@ import { FC, useEffect, useState, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useDraw } from '@/hooks/useDraw';
 
-const socket = io('http://localhost:3001');
+const socket = io(process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001');
 
 interface DrawLineProps {
     prevPoint: Point | null;
