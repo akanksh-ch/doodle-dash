@@ -109,14 +109,41 @@ app.post('/api/score', async (req, res) => {
     }
 
     try {
-        const { data, error } = await supabase
+        // Check if user exists
+        const { data: existingUser, error: fetchError } = await supabase
             .from('leaderboard')
-            .insert([{ username, score: score || 1 }]) // Default 1 point per win
-            .select();
+            .select('*')
+            .eq('username', username)
+            .single();
 
-        if (error) throw error;
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "Row not found"
+            throw fetchError;
+        }
 
-        res.json({ success: true, data });
+        let result;
+        if (existingUser) {
+            // Update existing score
+            const newScore = (existingUser.score || 0) + (score || 1);
+            const { data, error } = await supabase
+                .from('leaderboard')
+                .update({ score: newScore })
+                .eq('id', existingUser.id)
+                .select();
+
+            if (error) throw error;
+            result = data;
+        } else {
+            // Insert new user
+            const { data, error } = await supabase
+                .from('leaderboard')
+                .insert([{ username, score: score || 1 }])
+                .select();
+
+            if (error) throw error;
+            result = data;
+        }
+
+        res.json({ success: true, data: result });
     } catch (error) {
         console.error("Error saving score:", error);
         res.status(500).json({ error: "Failed to save score" });
