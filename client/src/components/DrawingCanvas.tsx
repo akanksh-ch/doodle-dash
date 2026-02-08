@@ -81,6 +81,8 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
         const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
 
         try {
+            socket.emit('pause-timer'); // Pause timer before request
+
             const response = await fetch(`${SERVER_URL}/api/guess`, {
                 method: "POST",
                 headers: {
@@ -107,6 +109,8 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
         } catch (error) {
             console.error(error);
             alert("Error getting guess. Check server logs.");
+        } finally {
+            socket.emit('resume-timer'); // Resume timer after request (success or fail)
         }
     }
 

@@ -85,6 +85,27 @@ io.on('connection', (socket) => {
         io.emit('game-over', result);
     });
 
+    socket.on('pause-timer', () => {
+        console.log("Pausing timer at:", timeLeft);
+        clearInterval(timerInterval);
+    });
+
+    socket.on('resume-timer', () => {
+        console.log("Resuming timer from:", timeLeft);
+        clearInterval(timerInterval); // Safety clear
+        if (timeLeft > 0) {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                io.emit('timer-update', timeLeft);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    io.emit('time-up', global.currentWord);
+                }
+            }, 1000);
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
     });
