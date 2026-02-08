@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
 
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
-                io.emit('time-up', targetWord);
+                io.emit('time-up', global.currentWord);
             }
         }, 1000);
     });
@@ -119,6 +119,11 @@ app.post('/api/guess', async (req, res) => {
         // Let's rely on client passing it or just basic matching for now? 
         // No, that's insecure.
         // Let's make targetWord global for this simple MVP.
+
+        if (!global.currentWord) {
+            // Game state lost or not started
+            return res.json({ guess: text, isWin: false });
+        }
 
         const isWin = text.toLowerCase().includes(global.currentWord?.toLowerCase());
 
