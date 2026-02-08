@@ -7,6 +7,9 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
+const morgan = require('morgan');
+app.use(morgan('dev'));
+app.use(express.json({ limit: '10mb' }));
 app.use(cors());
 
 const server = http.createServer(app);
@@ -39,7 +42,18 @@ io.on('connection', (socket) => {
 
     let timerInterval;
     let timeLeft = 30;
-    const WORDS = ["cat", "dog", "tree", "house", "sun", "moon", "star", "flower", "car", "boat", "apple", "banana", "duck", "pizza", "robot"];
+
+    const fs = require('fs');
+    const path = require('path');
+    let WORDS = [];
+    try {
+        const wordsPath = path.join(__dirname, 'words.json');
+        const data = fs.readFileSync(wordsPath, 'utf8');
+        WORDS = JSON.parse(data);
+    } catch (err) {
+        console.error("Error loading words:", err);
+        WORDS = ["cat", "dog", "tree"]; // Fallback
+    }
 
     socket.on('start-game', () => {
         // Select random word
@@ -80,7 +94,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 // ... existing imports
 const supabase = require('./db');
@@ -173,7 +187,13 @@ app.post('/api/guess', async (req, res) => {
         res.json({ guess: text, isWin });
     } catch (error) {
         console.error('Error calling Gemini:', error);
-        res.status(500).json({ error: 'Failed to generate guess' });
+        if (error.response) {
+            console.error('Gemini API Error Response:', error.response.data);
+            console.error('Gemini API Status:', error.response.status);
+            console.error('Gemini API Headers:', error.response.headers);
+            return res.status(error.response.status).json({ error: 'Gemini API Error', details: error.response.data });
+        }
+        res.status(500).json({ error: 'Failed to generate guess', details: error.message });
     }
 });
 
