@@ -22,6 +22,9 @@ const io = new Server(server, {
     }
 });
 
+// Simple Game State for MVP (Single Room)
+global.currentWord = "";
+
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
@@ -36,9 +39,14 @@ io.on('connection', (socket) => {
 
     let timerInterval;
     let timeLeft = 30;
+    const WORDS = ["cat", "dog", "tree", "house", "sun", "moon", "star", "flower", "car", "boat", "apple", "banana", "duck", "pizza", "robot"];
 
     socket.on('start-game', () => {
-        io.emit('start-game');
+        // Select random word
+        global.currentWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+        console.log("Target Word:", global.currentWord);
+
+        io.emit('start-game', global.currentWord);
         io.emit('clear');
 
         // Reset Timer
@@ -53,7 +61,7 @@ io.on('connection', (socket) => {
 
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
-                io.emit('time-up'); // Client should handle this, maybe auto-guess or just show "Time's Up"
+                io.emit('time-up', targetWord);
             }
         }, 1000);
     });
@@ -84,9 +92,6 @@ app.post('/api/guess', async (req, res) => {
         }
 
         // Image comes as "data:image/png;base64,..."
-        // We need to strip the prefix for the API if using inlineData, 
-        // but the Node SDK helper might expect the raw buffer or specific format.
-        // For simple inline data:
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
 
         const prompt = "You are a party game player. Guess what this drawing represents in 1-3 words. Be funny if the drawing is bad.";
@@ -101,13 +106,32 @@ app.post('/api/guess', async (req, res) => {
             },
         ]);
         const response = await result.response;
-        const text = response.text();
+        const text = response.text().trim();
 
-        res.json({ guess: text.trim() });
+        // Simple check: does the guess contain the target word?
+        // We need to access targetWord here. 
+        // NOTE: Since targetWord is in the socket scope, we can't easily access it here in the express route 
+        // without some shared state management. 
+        // FOR NOW: We will assume single active game logic (all sockets share same state in this simple server).
+        // To fix this properly for multiple rooms, we'd need Game Rooms, but for this hackathon MVP, 
+        // we'll move the variable to global scope or pass it.
+
+        // Let's rely on client passing it or just basic matching for now? 
+        // No, that's insecure.
+        // Let's make targetWord global for this simple MVP.
+
+        const isWin = text.toLowerCase().includes(global.currentWord?.toLowerCase());
+
+        res.json({ guess: text, isWin });
     } catch (error) {
         console.error('Error calling Gemini:', error);
         res.status(500).json({ error: 'Failed to generate guess' });
     }
+});
+    } catch (error) {
+    console.error('Error calling Gemini:', error);
+    res.status(500).json({ error: 'Failed to generate guess' });
+}
 });
 
 const PORT = process.env.PORT || 3001;
