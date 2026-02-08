@@ -17,62 +17,11 @@ interface Point {
 
 interface DrawingCanvasProps {
     readOnly?: boolean;
-    onGuessSubmit?: (guess: string) => void;
+    onGuessSubmit?: (guess: string, isWin: boolean) => void;
 }
 
 const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit }) => {
-    const [color, setColor] = useState<string>('#000');
-    const isInitialized = useRef(false);
-
-    const createLine = useCallback(({ ctx, currentPoint, prevPoint }: { ctx: CanvasRenderingContext2D; currentPoint: Point; prevPoint: Point | null }) => {
-        if (readOnly) return;
-        socket.emit('draw-line', ({ prevPoint, currentPoint, color }));
-        drawLine({ prevPoint, currentPoint, ctx, color });
-    }, [color, readOnly]);
-
-    const { canvasRef, onMouseDown, clear } = useDraw(createLine);
-
-    useEffect(() => {
-        const ctx = canvasRef.current?.getContext('2d');
-
-        // Initialize with white background only once
-        if (ctx && !readOnly && !isInitialized.current) {
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, canvasRef.current?.width || 0, canvasRef.current?.height || 0);
-            isInitialized.current = true;
-        }
-
-        socket.on('draw-line', ({ prevPoint, currentPoint, color }: DrawLineProps) => {
-            if (!ctx) return;
-            drawLine({ prevPoint, currentPoint, ctx, color });
-        });
-
-        socket.on('clear', clear);
-
-        return () => {
-            socket.off('draw-line');
-            socket.off('clear');
-        };
-    }, [canvasRef, clear, readOnly]);
-
-    function drawLine({ prevPoint, currentPoint, ctx, color }: DrawLineProps & { ctx: CanvasRenderingContext2D }) {
-        const { x: currX, y: currY } = currentPoint;
-        const lineColor = color;
-        const lineWidth = 5;
-
-        let startPoint = prevPoint ?? currentPoint;
-        ctx.beginPath();
-        ctx.lineWidth = lineWidth;
-        ctx.strokeStyle = lineColor;
-        ctx.moveTo(startPoint.x, startPoint.y);
-        ctx.lineTo(currX, currY);
-        ctx.stroke();
-
-        ctx.fillStyle = lineColor;
-        ctx.beginPath();
-        ctx.arc(startPoint.x, startPoint.y, 2, 0, 2 * Math.PI);
-        ctx.fill();
-    }
+    // ... items ...
 
     async function handleGuess() {
         if (!canvasRef.current) return;
@@ -93,11 +42,16 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
                 throw new Error("Failed to get guess");
             }
 
-            const data = await response.json();
+            const data = await response.json(); // { guess: string, isWin: boolean }
+
             if (onGuessSubmit) {
-                onGuessSubmit(data.guess);
+                if (data.isWin) {
+                    onGuessSubmit(data.guess, true);
+                } else {
+                    alert(`AI guessed: "${data.guess}". Wrong! Keep drawing.`);
+                }
             } else {
-                alert(`AI says: ${data.guess}`);
+                alert(`AI says: ${data.guess} (Win: ${data.isWin})`);
             }
         } catch (error) {
             console.error(error);

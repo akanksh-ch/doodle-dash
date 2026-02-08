@@ -10,23 +10,22 @@ export default function Home() {
   const [gameState, setGameState] = useState<GameState>('LOBBY');
   const [lastGuess, setLastGuess] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(30);
+  const [currentWord, setCurrentWord] = useState<string>('');
 
   useEffect(() => {
-    socket.on('start-game', () => {
+    socket.on('start-game', (word: string) => {
       setGameState('PLAYING');
       setLastGuess('');
       setTimeLeft(30);
+      setCurrentWord(word);
     });
 
     socket.on('timer-update', (time: number) => {
       setTimeLeft(time);
     });
 
-    socket.on('time-up', () => {
-      // For now, just end the game with a timeout message if no guess happened
-      // Or maybe trigger a "Panic Guess"?
-      // Let's just go to results with "Time's Up!"
-      setLastGuess("Time's Up! No guess made.");
+    socket.on('time-up', (word: string) => {
+      setLastGuess(`Time's Up! The word was: ${word}`);
       setGameState('RESULTS');
     });
 
@@ -47,8 +46,13 @@ export default function Home() {
     socket.emit('start-game');
   };
 
-  const handleGuessSubmit = (guess: string) => {
-    socket.emit('end-game', guess);
+  const handleGuessSubmit = (guess: string, isWin: boolean) => {
+    if (isWin) {
+      socket.emit('end-game', `WINNER! AI correctly guessed: "${guess}" matches "${currentWord}"`);
+    } else {
+      // This shouldn't happen based on DrawingCanvas logic (it alerts instead), 
+      // but just in case we change logic later or want to penalize.
+    }
   };
 
   const handlePlayAgain = () => {
@@ -82,7 +86,8 @@ export default function Home() {
             <div className={`text-4xl font-black ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-gray-800'}`}>
               {timeLeft}s
             </div>
-            <p className="text-sm text-gray-500 mt-1">Draw something and click Guess!</p>
+            <p className="text-xl mt-2">Draw: <span className="font-bold text-blue-600 uppercase">{currentWord}</span></p>
+            <p className="text-sm text-gray-500 mt-1">AI must guess this word!</p>
           </div>
           <DrawingCanvas onGuessSubmit={handleGuessSubmit} />
         </div>
