@@ -128,11 +128,7 @@ app.post('/api/guess', async (req, res) => {
         res.status(500).json({ error: 'Failed to generate guess' });
     }
 });
-    } catch (error) {
-    console.error('Error calling Gemini:', error);
-    res.status(500).json({ error: 'Failed to generate guess' });
-}
-});
+
 
 const PORT = process.env.PORT || 3001;
 
