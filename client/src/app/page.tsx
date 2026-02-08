@@ -96,7 +96,7 @@ export default function Home() {
         )}
       </div>
 
-      <h1 className="text-4xl font-bold mb-8">SketchGuess Multiplayer</h1>
+      <h1 className="text-4xl font-bold mb-8">Doodle Dash</h1>
 
       {showLeaderboard ? (
         <div className="w-full max-w-md bg-white p-6 rounded-xl shadow-lg border">
