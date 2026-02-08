@@ -74,9 +74,12 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
         ctx.fill();
     }
 
+    const [isProcessingGuess, setIsProcessingGuess] = useState(false);
+
     async function handleGuess() {
         if (!canvasRef.current) return;
 
+        setIsProcessingGuess(true); // Disable interaction
         const image = canvasRef.current.toDataURL("image/png");
         const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
 
@@ -111,6 +114,7 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
             alert("Error getting guess. Check server logs.");
         } finally {
             socket.emit('resume-timer'); // Resume timer after request (success or fail)
+            setIsProcessingGuess(false); // Re-enable interaction
         }
     }
 
@@ -125,32 +129,37 @@ const DrawingCanvas: FC<DrawingCanvasProps> = ({ readOnly = false, onGuessSubmit
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
                             className='w-10 h-10'
+                            disabled={isProcessingGuess}
                         />
                     </div>
                     <button
                         type='button'
-                        className='p-2 rounded-md border border-black hover:bg-gray-100 transition-all'
+                        className='p-2 rounded-md border border-black hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
                         onClick={() => {
                             socket.emit('clear');
                             clear();
-                        }}>
+                        }}
+                        disabled={isProcessingGuess}
+                    >
                         Clear canvas
                     </button>
                     <button
                         type='button'
-                        className='p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-all'
-                        onClick={handleGuess}>
-                        Guess!
+                        className='p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+                        onClick={handleGuess}
+                        disabled={isProcessingGuess}
+                    >
+                        {isProcessingGuess ? 'Guessing...' : 'Guess!'}
                     </button>
                 </div>
             )}
             <canvas
                 ref={canvasRef}
-                onMouseDown={onMouseDown}
-                onTouchStart={onMouseDown}
+                onMouseDown={isProcessingGuess ? undefined : onMouseDown}
+                onTouchStart={isProcessingGuess ? undefined : onMouseDown}
                 width={750}
                 height={750}
-                className={`border border-black rounded-md ${readOnly ? 'cursor-default pointer-events-none' : 'cursor-crosshair'}`}
+                className={`border border-black rounded-md ${readOnly || isProcessingGuess ? 'cursor-default pointer-events-none' : 'cursor-crosshair'}`}
             />
         </div>
     );
