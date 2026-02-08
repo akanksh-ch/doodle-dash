@@ -3,10 +3,14 @@
 import { useEffect, useState } from 'react';
 import DrawingCanvas from '@/components/DrawingCanvas';
 import { socket } from '@/socket';
+import { useAuth0 } from '@auth0/auth0-react';
+import LoginButton from '@/components/LoginButton';
+import LogoutButton from '@/components/LogoutButton';
 
 type GameState = 'LOBBY' | 'PLAYING' | 'RESULTS';
 
 export default function Home() {
+  const { user, isAuthenticated, isLoading } = useAuth0();
   const [gameState, setGameState] = useState<GameState>('LOBBY');
   const [lastGuess, setLastGuess] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(30);
@@ -60,7 +64,21 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50 relative">
+      <div className="absolute top-5 right-5 flex items-center gap-4">
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : isAuthenticated && user ? (
+          <div className="flex items-center gap-4">
+            <span className="font-semibold text-gray-700">Hi, {user.name}</span>
+            <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full border" />
+            <LogoutButton />
+          </div>
+        ) : (
+          <LoginButton />
+        )}
+      </div>
+
       <h1 className="text-4xl font-bold mb-8">SketchGuess Multiplayer</h1>
 
       {gameState === 'LOBBY' && (

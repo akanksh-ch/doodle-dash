@@ -82,9 +82,52 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-app.use(express.json({ limit: '10mb' }));
+// ... existing imports
+const supabase = require('./db');
+
+// ... existing code ...
+
+app.post('/api/score', async (req, res) => {
+    const { username, score } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: "Username required" });
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('leaderboard')
+            .insert([{ username, score: score || 1 }]) // Default 1 point per win
+            .select();
+
+        if (error) throw error;
+
+        res.json({ success: true, data });
+    } catch (error) {
+        console.error("Error saving score:", error);
+        res.status(500).json({ error: "Failed to save score" });
+    }
+});
+
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('leaderboard')
+            .select('*')
+            .order('score', { ascending: false })
+            .limit(10);
+
+        if (error) throw error;
+
+        res.json(data);
+    } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+        res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+});
 
 app.post('/api/guess', async (req, res) => {
+    // ... existing guess logic ...
     try {
         const { image } = req.body;
         if (!image) {
